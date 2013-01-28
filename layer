@@ -1,0 +1,147 @@
+#!/bin/bash
+
+ACTION="$1"
+TARGET="$2"
+NAME="$3"
+case "$ACTION" in
+  unset ) 	echo $(color ltgreen)"Commands:"$(color off)
+		echo "layer login /path/to/layer"
+		echo "layer fork /path/to/target /path/to/fork"
+		;;
+  login )	if [ ! -d "$TARGET" ]
+		then
+		  echo $(color ltred)"No such layer!!"$(color off)
+		  exit 1
+		else 
+		  cd "$TARGET"
+		  if mount -t proc none proc
+		  then
+		    echo "ProcFS is mounted"
+		    if mount -o bind /dev dev
+		    then
+		      echo "DevFS is mounted"
+		      if mount -o bind /sys sys
+		      then
+			echo "SysFS is mounted"
+			if mount /dev/sda1 boot
+			then
+			  echo "Boot is mounted"
+			  if mount -t tmpfs tmpfs var/tmp
+			  then
+			    echo "TmpFS is mounted"
+			    if mount -o bind /src src
+			    then
+			      echo "Src is mounted"
+			      if mount /dev/sdb5 src/code
+			      then
+				echo "Depository is mounted"
+				echo "Entering to layer"
+				chroot "$TARGET" /bin/bash
+				umount proc
+				umount dev
+				umount sys
+				umount boot
+				umount src/code
+				umount src
+				umount var/tmp
+				echo "All FS unmounted"
+			      else
+				echo $(color ltred)"Depositories mount failed!!"$(color off)
+				exit 1
+			      fi
+			    else
+			      echo $(color ltred)"Src mount failed!!"$(color off)
+			      exit 1
+			    fi
+			  else
+			    echo $(color ltred)"TmpFS mount failed!!"$(color off)
+			    exit 1
+			  fi
+			else
+			  echo $(color ltred)"Boot mount failed!!"$(color off)
+			  exit 1
+			fi
+		      else
+			echo $(color ltred)"SysFS mount failed!!"$(color off)
+			exit 1
+		      fi
+		    else
+		      echo $(color ltred)"DevFS mount failed!!"$(color off)
+		      exit 1
+		    fi
+		  else
+		    echo $(color ltred)"ProcFS mount failed!!"$(color off)
+		    exit 1
+		  fi
+		fi
+		;;
+  fork | clone )	if [ ! -d "$TARGET" ]
+			then
+			  echo $(color ltyellow)"Usage: layer clone|fork TARGET NAME"$(color off)
+			  exit 1
+			elif [ -z "$NAME" ]
+			then
+			  echo $(color ltred)"NAME is not specified!!"$(color off)
+			  exit 1
+			elif [ -d "$NAME" ]
+			then
+			  echo $(color ltred)"Directory exists!!"$(color off)
+			  exit 1
+			elif btrfs subvolume snapshot "$TARGET" "$NAME" &>/dev/null
+			then
+			  echo "Layer "$TARGET" successfully forked to "$NAME""
+			  exit 0
+			else
+			  echo $(color ltred)"Error!!"$(color off)
+			  exit 1
+			fi
+			;;
+  new | create )	if [ -z "$TARGET" ]
+			then
+			  echo "NAME is not specified"
+			  exit 1
+			elif [ -d "$TARGET" ]
+			then
+			  echo $(color ltred)"Directory exists!!"$(color off)
+			  exit 1
+			elif btrfs subvolume create "$TARGET" &>/dev/null
+			then
+			  echo "Layer "$TARGET" created"
+			  exit 0
+			else
+			  echo $(color ltred)"Error!!"$(color off)
+			  exit 1
+			fi
+			;;
+  delete )	LNAME=`echo "$TARGET" | cut -b '7-'`
+		RESP=`btrfs subvolume list / | grep "$LNAME"/`
+		if [ -z "$TARGET" ]
+		then
+		  echo $(color ltred)"TARGET is not specified!!"$(color off)
+		  exit 1
+		elif [ -z "$RESP" ]
+		then
+		  if btrfs subvolume delete "$TARGET" &>/dev/null
+		  then
+		    echo "Layer "$TARGET" deleted"
+		    exit 0
+		  else
+		    echo $(color ltred)"Error!!"$(color off)
+		    exit 1
+		  fi
+		else
+		  echo $(color ltred)"First, delete this layers:"$(color off)
+		  echo $(color ltyellow)"$RESP"$(color off)
+		  exit 1
+		fi
+		;;
+  list )		RESP=`btrfs subvolume list /`
+		echo $(color ltgreen)"$RESP"$(color off)
+		exit 0
+		;;
+  * )  		echo "Unknown action"
+		exit 1
+		;;
+esac
+
+exit 0

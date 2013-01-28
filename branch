@@ -1,0 +1,110 @@
+ #!/bin/bash
+
+case "$1" in
+  set	)	case "$2" in
+		  "" | unset )	echo $(color ltyellow)"Setting branch of main repository"$(color off)
+					echo "Usage:	branch set back"
+					echo "	branch set front"
+					echo "	branch set raw"
+					exit 1
+					;;
+		  back | amd64 )	  echo '"amd64"' > /etc/portage/keywords.d/main
+						  echo $(color ltgreen)'Main repository branch set to back ("amd64")'$(color off)
+						  exit 0
+						  ;;
+		  front | ~amd64 )	  echo '"~amd64"' > /etc/portage/keywords.d/main
+						  echo $(color ltgreen)'Main repository branch set to front ("~amd64")'$(color off)
+						  exit 0
+						  ;;
+		  raw )	  echo '"**"' > /etc/portage/keywords.d/main
+					  echo $(color ltgreen)'Main repository branch set to raw ("**")'$(color off)
+					  exit 0
+					  ;;
+		  * )		  if [ ! -f /etc/portage/keywords.d/"$2" ]
+				  then
+				    echo $(color ltred)"Repository not found!!"$(color off)
+				    exit 1
+				  elif [ -z "$3" ]
+				  then
+				    echo $(color ltred)"Specify the branch!!"$(color off)
+				    exit 1
+				  elif [ "$3" = back ]
+				  then
+				    echo "*/*::"$2" amd64" > /etc/portage/keywords.d/"$2"
+				    echo $(color ltgreen)"$2"' repository branch set to back ("amd64")'$(color off)
+				    exit 0
+				  elif [ "$3" = front ]
+				  then
+				    echo "*/*::"$2" ~amd64" > /etc/portage/keywords.d/"$2"
+				    echo $(color ltgreen)"$2"' repository branch set to front ("~amd64")'$(color off)
+				    exit 0
+				  elif [ "$3" = raw ]
+				  then
+				    echo "*/*::"$2" **" > /etc/portage/keywords.d/"$2"
+				    echo $(color ltgreen)"$2"' repository branch set to raw ("**")'$(color off)
+				    exit 0
+				  else
+				    echo $(color ltred)"Incorrect branch!!"$(color off)
+				    exit 1
+				  fi
+				  ;;
+		esac
+		;;
+  show )	if [ -z "$2" ]
+		then
+		  if grep '~amd64' /etc/portage/keywords.d/main &>/dev/null
+		  then
+		    echo $(color ltgreen)'Main repository uses front ("~amd64") branch'$(color off)
+		    exit 0
+		  elif grep 'amd64' /etc/portage/keywords.d/main &>/dev/null
+		  then
+		    echo $(color ltgreen)'Main repository uses back ("amd64") branch'$(color off)
+		    exit 0
+		  elif grep "**" /etc/portage/keywords.d/main &>/dev/null
+		  then
+		    echo $(color ltgreen)'Main repository uses raw ("**") branch'$(color off)
+		    exit 0
+		  else
+		    echo $(color ltred)"Incorrect branch!!"$(color off)
+		    exit 1
+		  fi
+		elif [ ! -f /etc/portage/keywords.d/"$2" ]
+		then
+		  echo $(color ltred)"Repository not found!!"$(color off)
+		  exit 1
+		else
+		  if grep '~amd64' /etc/portage/keywords.d/"$2" &>/dev/null
+		  then
+		    echo $(color ltgreen)"$2"' repository uses front ("~amd64") branch'$(color off)
+		    exit 0
+		  elif grep 'amd64' /etc/portage/keywords.d/"$2" &>/dev/null
+		  then
+		    echo $(color ltgreen)"$2"' repository uses back ("amd64") branch'$(color off)
+		    exit 0
+		  elif grep "**" /etc/portage/keywords.d/"$2" &>/dev/null
+		  then
+		    echo $(color ltgreen)"$2"' repository uses raw ("**") branch'$(color off)
+		    exit 0
+		  else
+		    echo $(color ltred)"Incorrect branch!!"$(color off)
+		    exit 1
+		  fi
+		fi
+		;;
+  list )		echo $(color ltyellow)"Available branches:"$(color off)
+		echo 'back	("amd64")	branch of stable old software'
+		echo 'front	("~amd64")	branch of testing new software'
+		echo 'raw	("**")		branch of experimental newest software'
+		exit 0
+		;;
+  * | "" | unset )	echo $(color ltyellow)"Control of the branches"$(color off)
+			echo "Usage:	branch [repo_name] set [back|front|raw]"
+			echo "	branch [repo_name] show"
+			exit 1
+			;;
+esac
+
+exit 0
+		 
+		 
+		    

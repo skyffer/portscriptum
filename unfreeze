@@ -1,0 +1,34 @@
+#!/bin/bash
+
+if [ -z "$1" ]
+then
+  echo $(color ltyellow)"Unfreezing frozen package"$(color off)
+  echo "Usage:	unfreeze PACKAGE"
+  exit 1
+fi
+APPNAME="$1"
+APPVAR=`FORMAT='<category>/<name>\n' eix -e "$APPNAME"`
+APPCAT=`echo "$APPVAR" | cut -d / -f1`
+APPVER=`eix -eI --format '<installedversions:VERSION>' "$APPNAME"`
+COUNT=`echo "$APPVAR" | wc -l`
+if (("$COUNT" > 2))
+then
+  echo -n "Too many packages with this name: "
+  echo "$(color ltyellow)"$APPVAR"$(color off)"
+  echo "Please, specify package name with its category"
+  exit 1
+elif [ ! -d /etc/portage/profile/package.provided/"$APPCAT" ]
+then
+  echo $(color ltyellow)""$APPCAT"/"$APPNAME" already was unfrozen"$(color off)
+  exit 0
+elif [ -f /etc/portage/profile/package.provided/"$APPCAT"/"$APPNAME" ] 
+then
+  rm /etc/portage/profile/package.provided/"$APPCAT"/"$APPNAME"
+  if [[ ! "$(ls -A /etc/portage/profile/package.provided/"$APPCAT")" ]]
+  then
+    rm -r /etc/portage/profile/package.provided/"$APPCAT"
+  fi
+  echo $(color ltgreen)""$APPCAT"/"$APPNAME" unfrozen"$(color off)
+fi
+
+exit 0

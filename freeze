@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [ -z "$1" ]
+then
+  echo $(color ltyellow)"Freezing package on installed version"$(color off)
+  echo "Usage:	freeze PACKAGE"
+  exit 1
+fi
+APPNAME="$1"
+APPVAR=`FORMAT='<category>/<name>\n' eix -e "$APPNAME"`
+APPCAT=`echo "$APPVAR" | cut -d / -f1`
+APPVER=`eix -eI --format '<installedversions:VERSION>' "$APPNAME"`
+COUNT=`echo "$APPVAR" | wc -l`
+if (("$COUNT" > 2))
+then
+  echo -n "Too many packages with this name: "
+  echo "$(color ltyellow)"$APPVAR"$(color off)"
+  echo "Please, specify package name with its category"
+  exit 1
+elif [ -f /etc/portage/profile/package.provided/"$APPCAT"/"$APPNAME" ]
+then
+  echo $(color ltyellow)""$APPCAT"/"$APPNAME" already was frozen on version "$APPVER""$(color off)
+  exit 0
+else
+  mkdir -p /etc/portage/profile/package.provided/"$APPCAT"
+  echo "$APPCAT"/"$APPNAME"-9999 > /etc/portage/profile/package.provided/"$APPCAT"/"$APPNAME"
+  echo $(color ltgreen)""$APPCAT"/"$APPNAME" frozen on version "$APPVER""$(color off)
+fi
+
+exit 0
